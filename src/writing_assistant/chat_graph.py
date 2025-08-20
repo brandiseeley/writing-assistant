@@ -4,7 +4,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from .chat_state import ChatState
 from .nodes.draft_node import draft_node
-from .nodes.human_feedback import human_approval
+from .nodes.feedback_node import human_approval
 from .nodes.revisor_node import revisor_node
 
 def create_chat_graph():
