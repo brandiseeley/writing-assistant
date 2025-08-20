@@ -1,6 +1,7 @@
 from typing import Dict, List, TypedDict, Optional
 
 class ChatState(TypedDict):
+    user: str
     messages: List[Dict[str, str]]
     current_draft: str
     past_revisions: List[str]

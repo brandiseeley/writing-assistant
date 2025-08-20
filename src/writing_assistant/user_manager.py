@@ -53,6 +53,11 @@ class UserManager:
         
         data[user_id]["memories"].append(memory)
         self._save_data(data)
+    
+    def get_all_users(self) -> List[str]:
+        """Get list of all user IDs."""
+        data = self._load_data()
+        return list(data.keys())
 
 if __name__ == "__main__":
     user_manager = UserManager()

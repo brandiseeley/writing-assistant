@@ -12,9 +12,13 @@ dotenv.load_dotenv()
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 from writing_assistant.chat_graph import create_chat_graph, initialize_chat_state
+from writing_assistant.user_manager import UserManager
 
 # Page config
 st.set_page_config(page_title="State Visualizer", page_icon="📝")
+
+# Initialize user manager
+user_manager = UserManager()
 
 # Title
 st.title("📝 State Visualizer")
@@ -33,6 +37,7 @@ if "current_state" not in st.session_state:
     st.session_state.current_state = initialize_chat_state()
     st.session_state.current_state["action_log"] = [f'Graph was initialized. ConfigID: {str(st.session_state.config["configurable"]["thread_id"])[:6]}...']
 
+
 # Simple controls
 st.header("Controls")
 new_message = st.text_input("Send Request:")
@@ -41,6 +46,7 @@ if st.button("Send"):
         st.session_state.current_state["action_log"].append("User sent a request.")
         st.session_state.current_state["original_request"] = new_message
         try:
+            print('INVOKING GRAPH WITH THIS USER', st.session_state.user)
             result = st.session_state.chat_graph.invoke(st.session_state.current_state, config=st.session_state.config)
             st.session_state.current_state = result
             st.rerun()
@@ -71,6 +77,17 @@ if st.button("Reset"):
 # Display state
 st.header("Current State")
 st.json(st.session_state.current_state)
+
+# User selection
+st.sidebar.header("User Selection")
+available_users = user_manager.get_all_users()
+user_options = ["New User"] + available_users
+selected_user = st.sidebar.selectbox("Select User:", user_options)
+
+# Update current state with selected user and trigger rerun if changed
+if selected_user != st.session_state.current_state["user"]:
+    st.session_state.current_state["user"] = selected_user
+    st.rerun()
 
 # Display action log
 st.sidebar.header("Action Log")

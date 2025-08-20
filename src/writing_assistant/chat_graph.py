@@ -33,6 +33,7 @@ def create_chat_graph():
 def initialize_chat_state() -> ChatState:
     """Initialize a new chat state"""
     return {
+        "user": None,
         "messages": [],
         "current_draft": "",
         "past_revisions": [],
