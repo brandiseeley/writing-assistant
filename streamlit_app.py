@@ -14,14 +14,13 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 from writing_assistant.chat_graph import create_chat_graph, initialize_chat_state
 from writing_assistant.user_manager import UserManager
 
-# Page config
-st.set_page_config(page_title="State Visualizer", page_icon="📝")
-
 # Initialize user manager
 user_manager = UserManager()
 
-# Title
+# Page config
+st.set_page_config(page_title="State Visualizer", page_icon="📝", layout="wide")
 st.title("📝 State Visualizer")
+left_column, right_column = st.columns(2)
 
 # Check for API key
 if not os.getenv("OPENAI_API_KEY"):
@@ -37,11 +36,10 @@ if "current_state" not in st.session_state:
     st.session_state.current_state = initialize_chat_state()
     st.session_state.current_state["action_log"] = [f'Graph was initialized. ConfigID: {str(st.session_state.config["configurable"]["thread_id"])[:6]}...']
 
-
-# Simple controls
-st.header("Controls")
-new_message = st.text_input("Send Request:")
-if st.button("Send"):
+# Simple controls - LEFT COLUMN
+left_column.header("Controls")
+new_message = left_column.text_input("Send Request:")
+if left_column.button("Send"):
     if new_message.strip():
         st.session_state.current_state["action_log"].append("User sent a request.")
         st.session_state.current_state["original_request"] = new_message
@@ -52,11 +50,11 @@ if st.button("Send"):
         except Exception as e:
             st.error(f"Error: {e}")
 
-if st.button("approve"):
+if left_column.button("approve"):
     st.session_state.chat_graph.invoke(Command(resume={"action": "approve", "feedback":"none"}), config=st.session_state.config)
     st.session_state.current_state["action_log"].append(f"User approved a draft. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
 
-with st.form("revise_form"):
+with left_column.form("revise_form"):
     feedback = st.text_area("Enter your feedback:")
     if st.form_submit_button("Revise"):
         st.session_state.current_state["action_log"].append(f"User provided feedback. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
@@ -64,18 +62,18 @@ with st.form("revise_form"):
         st.session_state.current_state = result
         st.rerun()
 
-if st.button("reject"):
+if left_column.button("reject"):
     st.session_state.current_state["action_log"].append(f"User rejected a draft. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
     st.session_state.chat_graph.invoke(Command(resume={"action": "reject", "feedback": "none"}), config=st.session_state.config)
     st.rerun()
 
-if st.button("Reset"):
+if left_column.button("Reset"):
     st.session_state.current_state = initialize_chat_state()
     st.rerun()
 
-# Display state
-st.header("Current State")
-st.json(st.session_state.current_state)
+# Display state - RIGHT COLUMN
+right_column.header("Current State")
+right_column.json(st.session_state.current_state)
 
 # User selection
 st.sidebar.header("User Selection")
