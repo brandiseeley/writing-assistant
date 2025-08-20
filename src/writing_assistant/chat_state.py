@@ -9,3 +9,4 @@ class ChatState(TypedDict):
     feedback: str
     interrupt_data: Optional[Dict]
     action_log: List[str]
+    memories: List[str]

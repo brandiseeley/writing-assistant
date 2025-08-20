@@ -46,7 +46,6 @@ if st.button("Send"):
         st.session_state.current_state["action_log"].append("User sent a request.")
         st.session_state.current_state["original_request"] = new_message
         try:
-            print('INVOKING GRAPH WITH THIS USER', st.session_state.user)
             result = st.session_state.chat_graph.invoke(st.session_state.current_state, config=st.session_state.config)
             st.session_state.current_state = result
             st.rerun()
@@ -87,6 +86,14 @@ selected_user = st.sidebar.selectbox("Select User:", user_options)
 # Update current state with selected user and trigger rerun if changed
 if selected_user != st.session_state.current_state["user"]:
     st.session_state.current_state["user"] = selected_user
+    
+    # Fetch and add user memories to state
+    if selected_user != "New User":
+        memories = user_manager.get_memories(selected_user)
+        st.session_state.current_state["memories"] = memories
+    else:
+        st.session_state.current_state["memories"] = []
+    
     st.rerun()
 
 # Display action log

@@ -40,5 +40,6 @@ def initialize_chat_state() -> ChatState:
         "original_request": "",
         "feedback": "",
         "interrupt_data": None,
-        "action_log": []
+        "action_log": [],
+        "memories": []
     }
