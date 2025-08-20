@@ -7,6 +7,9 @@ You are revising a draft message based on user feedback. You will be given the p
 Original Request:
 {original_request}
 
+User Preferences:
+{user_preferences}
+
 Past Revisions:
 {past_revisions}
 
@@ -22,11 +25,24 @@ Please revise the response taking into account the user's feedback while maintai
 def revisor_node(state: ChatState) -> ChatState:
     """Node that creates the initial draft of the user input and generates AI response"""
     state["action_log"].append("Revisor node was invoked.")
-    # Add the current user message
+    
+    # Build user preferences from memories
+    user_preferences = ""
+    if state.get("memories") and len(state["memories"]) > 0:
+        user_preferences = "User Preferences:\n" + "\n".join([f"- {memory}" for memory in state["memories"]]) + "\n"
+
+    # Format past revisions for display
+    past_revisions_text = ""
+    if state["past_revisions"]:
+        for i, revision in enumerate(state["past_revisions"], 1):
+            past_revisions_text += f"Round {i}:\n"
+            past_revisions_text += f"Feedback: {revision['feedback']}\n"
+            past_revisions_text += f"Draft: {revision['draft']}\n\n"
 
     prompt = PROMPT.format(
         original_request=state["original_request"],
-        past_revisions=state["past_revisions"],
+        user_preferences=user_preferences,
+        past_revisions=past_revisions_text,
         current_draft=state["current_draft"],
         feedback=state["feedback"]
     )
@@ -38,8 +54,11 @@ def revisor_node(state: ChatState) -> ChatState:
     # Extract the response
     ai_response = response.content
 
-    # Update state
-    state["past_revisions"].append(state["current_draft"])
+    # Update state - store current draft and feedback as a dictionary
+    state["past_revisions"].append({
+        "draft": state["current_draft"],
+        "feedback": state["feedback"]
+    })
     state["current_draft"] = ai_response
 
     return state

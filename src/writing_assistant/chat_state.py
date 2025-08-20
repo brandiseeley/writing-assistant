@@ -4,7 +4,7 @@ class ChatState(TypedDict):
     user: str
     messages: List[Dict[str, str]]
     current_draft: str
-    past_revisions: List[str]
+    past_revisions: List[Dict[str, str]]
     original_request: str
     feedback: str
     interrupt_data: Optional[Dict]
