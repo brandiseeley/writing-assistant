@@ -51,8 +51,13 @@ if left_column.button("Send"):
             st.error(f"Error: {e}")
 
 if left_column.button("approve"):
-    st.session_state.chat_graph.invoke(Command(resume={"action": "approve", "feedback":"none"}), config=st.session_state.config)
-    st.session_state.current_state["action_log"].append(f"User approved a draft. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
+    try:
+        result = st.session_state.chat_graph.invoke(Command(resume={"action": "approve", "feedback":"none"}), config=st.session_state.config)
+        st.session_state.current_state = result
+        st.session_state.current_state["action_log"].append(f"User approved a draft. Graph completed with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
+        st.rerun()
+    except Exception as e:
+        st.error(f"Error: {e}")
 
 with left_column.form("revise_form"):
     feedback = st.text_area("Enter your feedback:")
@@ -63,9 +68,13 @@ with left_column.form("revise_form"):
         st.rerun()
 
 if left_column.button("reject"):
-    st.session_state.current_state["action_log"].append(f"User rejected a draft. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
-    st.session_state.chat_graph.invoke(Command(resume={"action": "reject", "feedback": "none"}), config=st.session_state.config)
-    st.rerun()
+    try:
+        result = st.session_state.chat_graph.invoke(Command(resume={"action": "reject", "feedback": "none"}), config=st.session_state.config)
+        st.session_state.current_state = result
+        st.session_state.current_state["action_log"].append(f"User rejected a draft. Graph completed with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
+        st.rerun()
+    except Exception as e:
+        st.error(f"Error: {e}")
 
 if left_column.button("Reset"):
     st.session_state.current_state = initialize_chat_state()
