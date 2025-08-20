@@ -100,3 +100,8 @@ if selected_user != st.session_state.current_state["user"]:
 st.sidebar.header("Action Log")
 for action in st.session_state.current_state["action_log"]:
     st.sidebar.write(action)
+
+# Display graph
+graph = create_chat_graph()
+img_bytes = graph.get_graph().draw_mermaid_png()  
+st.sidebar.image(img_bytes)
