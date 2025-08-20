@@ -4,7 +4,7 @@ from langgraph.types import interrupt, Command
 from ..chat_state import ChatState
 
 
-def human_approval(state: ChatState) -> Command[Literal[END, "revisor"]]:
+def human_approval(state: ChatState) -> Command[Literal[END, "revisor", "memory_extraction"]]:
     """Node that handles human feedback on the draft"""
     state["action_log"].append("Human feedback node was invoked.")
     user_choice = interrupt(
@@ -19,7 +19,10 @@ def human_approval(state: ChatState) -> Command[Literal[END, "revisor"]]:
     action = user_choice.get("action")
     feedback = user_choice.get("feedback")
     
-    if action == "approve":
+    if action == "approve" and len(state["past_revisions"]) > 0:
+        state["action_log"].append("User approved the draft after revisions.")
+        return Command(goto="memory_extraction", update={"action_log": state["action_log"]})
+    elif action == "approve":
         state["action_log"].append("User approved the draft.")
         return Command(goto=END)
     elif action == "revise":

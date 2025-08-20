@@ -10,3 +10,4 @@ class ChatState(TypedDict):
     interrupt_data: Optional[Dict]
     action_log: List[str]
     memories: List[str]
+    suggested_memories: List[str]
