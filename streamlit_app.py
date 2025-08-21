@@ -20,8 +20,8 @@ def display_draft_message(message, message_index, column):
     with column.chat_message(message["role"]):
         st.markdown(message["content"])
         
-        # Add action buttons only for the most recent assistant message
-        if message_index == len(st.session_state.messages) - 1:
+        # Add action buttons only for draft messages (not status messages)
+        if message.get("message_type") == "draft" and message_index == len(st.session_state.messages) - 1:
             col1, col2, col3, col4, col5 = st.columns(5)
             with col1:
                 if st.button("Approve", key=f"approve_{message_index}"):
@@ -45,7 +45,7 @@ def handle_draft_approval():
     result = st.session_state.chat_graph.invoke(Command(resume={"action": "approve", "feedback": ""}), config=st.session_state.config)
     st.session_state.current_state = result
     if len(st.session_state.current_state["past_revisions"]) > 0:
-        st.session_state.messages.append({"role": "assistant", "content": "Checking for new memories..."})
+        st.session_state.messages.append({"role": "assistant", "content": "Checking for new memories...", "message_type": "status"})
     st.rerun()
 
 
@@ -86,7 +86,7 @@ def handle_feedback_mode(new_message):
         st.session_state.current_state = result
         
         if result.get("current_draft"):
-            st.session_state.messages.append({"role": "assistant", "content": result["current_draft"]})
+            st.session_state.messages.append({"role": "assistant", "content": result["current_draft"], "message_type": "draft"})
         
         st.rerun()
     except Exception as e:
@@ -104,7 +104,7 @@ def handle_normal_mode(new_message):
         st.session_state.current_state = result
         
         if result.get("current_draft"):
-            st.session_state.messages.append({"role": "assistant", "content": result["current_draft"]})
+            st.session_state.messages.append({"role": "assistant", "content": result["current_draft"], "message_type": "draft"})
             st.session_state.feedback_mode = True
         
         st.rerun()
