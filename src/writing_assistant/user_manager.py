@@ -54,6 +54,18 @@ class UserManager:
         data[user_id]["memories"].append(memory)
         self._save_data(data)
     
+    def add_memories(self, user_id: str, memories: List[str]):
+        """Add multiple memories to user."""
+        data = self._load_data()
+        if user_id not in data:
+            data[user_id] = {"memories": []}
+        
+        if "memories" not in data[user_id]:
+            data[user_id]["memories"] = []
+        
+        data[user_id]["memories"].extend(memories)
+        self._save_data(data)
+    
     def get_all_users(self) -> List[str]:
         """Get list of all user IDs."""
         data = self._load_data()

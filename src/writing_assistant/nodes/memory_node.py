@@ -1,5 +1,15 @@
 from ..chat_state import ChatState
 from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, Field
+from typing import List
+from langgraph.types import Command
+from langgraph.graph import END
+
+class MemoryExtraction(BaseModel):
+    """Structured output for memory extraction"""
+    memories: List[str] = Field(
+        description="List of new memory statements extracted from the revision cycle. Each memory should be a clear, actionable statement that can guide future writing. If no new meaningful insights emerge, this should be an empty list."
+    )
 
 PROMPT = """
 You are a writing assistant that has just completed a revision cycle based on user feedback. Your task is to analyze the interaction and extract any new memories or insights that could help improve future writing for this user.
@@ -21,9 +31,7 @@ Based on this revision cycle, identify any new insights about the user's writing
 
 Extract 1-3 concise memory statements that capture the most important insights. Each memory should be a clear, actionable statement that can guide future writing.
 
-If no new meaningful insights emerge from this interaction, respond with "No new memories to extract."
-
-Memories to extract:
+If no new meaningful insights emerge from this interaction, return an empty list of memories.
 """
 
 def memory_extraction_node(state: ChatState) -> ChatState:
@@ -51,12 +59,12 @@ def memory_extraction_node(state: ChatState) -> ChatState:
         past_revisions=past_revisions_text
     )
     
-    # Get response from OpenAI
+    # Get response from OpenAI with structured output
     llm = ChatOpenAI(model="gpt-4o-mini", max_tokens=300)
-    response = llm.invoke(prompt)
-    
-    # Add response to state as temporary solution
-    ai_response = response.content.strip()
-    state["suggested_memories"] = ai_response
+    llm_with_structure = llm.bind_tools([MemoryExtraction])
+    memories = llm_with_structure.invoke(prompt).tool_calls[0]["args"]["memories"]
 
-    return state
+    if len(memories) > 0:
+        return Command(goto="confirm_memories", update={"suggested_memories": memories})
+    else:
+        return Command(goto=END)

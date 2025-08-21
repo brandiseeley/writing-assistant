@@ -1,4 +1,4 @@
-from typing import Dict, List, TypedDict, Optional
+from typing import Dict, List, TypedDict
 
 class ChatState(TypedDict):
     user: str
@@ -7,7 +7,7 @@ class ChatState(TypedDict):
     past_revisions: List[Dict[str, str]]
     original_request: str
     feedback: str
-    interrupt_data: Optional[Dict]
     action_log: List[str]
     memories: List[str]
     suggested_memories: List[str]
+    new_memories: List[str]

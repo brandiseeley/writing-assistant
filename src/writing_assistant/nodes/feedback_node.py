@@ -10,9 +10,8 @@ def human_approval(state: ChatState) -> Command[Literal[END, "revisor", "memory_
     user_choice = interrupt(
         {
             "question": "Is this correct?",
-            # Surface the output that should be
-            # reviewed and approved by the human.
-            "llm_output": state["current_draft"]
+            "type": "draft",
+            "llm_output": state["current_draft"],
         }
     )
 
