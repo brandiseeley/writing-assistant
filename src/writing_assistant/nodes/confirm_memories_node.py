@@ -19,10 +19,10 @@ def confirm_memories_node(state: ChatState) -> Command:
         "suggested_memories": state["suggested_memories"],
     })
 
-    print('Resuming confirm memories node!')
-    print('RESULT:', result)
     if result['action'] == 'confirm_memories':
-        UserManager().add_memories(state["user"], result["new_memories"])
+        # Use the new_memories from the command result (which contains the user's edits)
+        updated_memories = result.get("new_memories", [])
+        # Save the updated memories
+        UserManager().add_memories(state["user"], updated_memories)
 
     return Command(goto=END)
-

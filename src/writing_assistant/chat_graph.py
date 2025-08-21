@@ -51,6 +51,5 @@ def initialize_chat_state() -> ChatState:
         "action_log": [],
         "memories": [],
         "suggested_memories": [],
-        "new_memories": [],
         "applicable_memories": []
     }

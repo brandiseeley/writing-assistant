@@ -42,23 +42,30 @@ def display_user_message(message, column):
 
 def display_memory_message(message, column):
     """Display and ask for confirmation of new memories from the assistant."""
-    memories = message["content"]
+    # Use current suggested_memories from session state for the actual data
+    memories = st.session_state.current_state["suggested_memories"]
     with column.chat_message("assistant"):
         st.write("I've deduced the following memories:")
         for i, memory in enumerate(memories):
             st.write(f"{i+1}. {memory}")
-            if st.button(f"Save Memory {i+1}", key=f"save_memory_{i}"):
-                st.session_state.current_state["action_log"].append(f"User confirmed memory #{i+1}")
-                st.session_state.current_state["new_memories"].append(memory)
-                st.rerun()
-            if st.button(f"Delete Memory {i+1}", key=f"delete_memory_{i}"):
-                st.session_state.current_state["action_log"].append(f"User deleted memory #{i+1}")
-                st.session_state.current_state["suggested_memories"].remove(memory)
-                st.rerun()
+            if st.button(f"🗑️ Delete", key=f"delete_memory_{i}"):
+                # Remove from suggested memories list using index
+                if i < len(st.session_state.current_state["suggested_memories"]):
+                    st.session_state.current_state["suggested_memories"].pop(i)
+                    st.session_state.current_state["action_log"].append(f"User deleted memory #{i+1}")
+                    
+                    # Remove the old memory message and recreate it with updated state
+                    st.session_state.messages.pop()  # Remove the last message (the memory message)
+                    add_new_message("assistant", st.session_state.current_state["suggested_memories"], "memory")
+                    st.rerun()
         if st.button("Save Memories"):
             st.session_state.current_state["action_log"].append(f"User confirmed memories. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
-            result = st.session_state.chat_graph.invoke(Command(resume={"action": "confirm_memories", "new_memories": st.session_state.current_state["new_memories"]}), config=st.session_state.config)
-            st.session_state.current_state = result
+            # Store the memories the user kept
+            saved_memories = st.session_state.current_state["suggested_memories"].copy()
+            # Pass the user's modified memories to the graph
+            st.session_state.chat_graph.invoke(Command(resume={"action": "confirm_memories", "new_memories": saved_memories}), config=st.session_state.config)
+            # Keep the saved memories in suggested_memories for display
+            st.session_state.current_state["suggested_memories"] = saved_memories
             add_new_message("assistant", "Memories saved.", "status")
             st.rerun()
 
@@ -70,7 +77,8 @@ def handle_draft_approval():
     st.session_state.feedback_mode = False
     result = st.session_state.chat_graph.invoke(Command(resume={"action": "approve", "feedback": ""}), config=st.session_state.config)
     st.session_state.current_state = result
-    if len(st.session_state.current_state["past_revisions"]) > 0:
+    # Only check for memories if there are past revisions AND no memory message already exists
+    if len(st.session_state.current_state["past_revisions"]) > 0 and not any(msg.get("message_type") == "memory" for msg in st.session_state.messages):
         add_new_message("assistant", "Checking for new memories...", "status")
         handle_memory_confirmation()
     st.rerun()
@@ -148,7 +156,9 @@ def handle_memory_confirmation():
     else:
         interrupt_data = interrupt_obj
 
-    add_new_message("assistant", interrupt_data['suggested_memories'], "memory")  
+    # Only create the memory message if it doesn't already exist
+    if not any(msg.get("message_type") == "memory" for msg in st.session_state.messages):
+        add_new_message("assistant", interrupt_data['suggested_memories'], "memory")
 
 
 def setup_chat_interface(column):

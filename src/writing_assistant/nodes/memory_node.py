@@ -49,6 +49,11 @@ def memory_extraction_node(state: ChatState) -> ChatState:
     """Extract new memories from revision cycles to improve future writing"""
     state["action_log"].append("Memory extraction node was invoked.")
     
+    # If there are already suggested memories, skip extraction to preserve user modifications
+    if state.get("suggested_memories"):
+        state["action_log"].append("Skipping memory extraction - memories already exist.")
+        return Command(goto="confirm_memories")
+    
     # Format past revisions for context
     past_revisions_text = ""
     if state["past_revisions"]:
