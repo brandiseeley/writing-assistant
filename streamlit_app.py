@@ -152,8 +152,6 @@ def handle_memory_confirmation():
 
 def setup_chat_interface(column):
     """Setup and handle the chat interface."""
-    column.header("Chat")
-
     # Display chat messages from history on app rerun
     for i, message in enumerate(st.session_state.messages):
         if message["role"] == "assistant" and message.get("message_type") == "draft":
@@ -221,15 +219,37 @@ def setup_sidebar():
 def setup_page_layout():
     """Setup the main page layout."""
     st.set_page_config(page_title="Writing Assistant", page_icon="📝", layout="wide")
-    st.title("📝 Writing Assistant")
-    return st.columns(2)
+    print("ST.SESSION_STATE.CURRENT_STATE:", st.session_state)
+
+    header = st.container()
+    header.header("📝 Writing Assistant")
+    # Display state in collapsible box above chat
+    with header.expander("Current State", expanded=False):
+        st.json(st.session_state.current_state)
+
+    header.write("""<div class='fixed-header'/>""", unsafe_allow_html=True)
+
+    ### Custom CSS for the sticky header
+    st.markdown(
+        """
+    <style>
+        div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
+            position: sticky;
+            top: 2.875rem;
+            background-color: white;
+            z-index: 999;
+        }
+        .fixed-header {
+            border-bottom: 1px solid black;
+        }
+    </style>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 # Initialize user manager
 user_manager = UserManager()
-
-# Setup page layout
-left_column, right_column = setup_page_layout()
 
 # Check for API key
 if not os.getenv("OPENAI_API_KEY"):
@@ -239,12 +259,11 @@ if not os.getenv("OPENAI_API_KEY"):
 # Initialize session state
 initialize_session_state()
 
-# Setup chat interface
-setup_chat_interface(left_column)
+# Setup page layout
+setup_page_layout()
 
-# Display state - RIGHT COLUMN
-right_column.header("Current State")
-right_column.json(st.session_state.current_state)
+# Setup chat interface
+setup_chat_interface(st)
 
 # Setup sidebar
 setup_sidebar()
