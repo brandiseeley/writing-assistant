@@ -51,8 +51,9 @@ def display_memory_message(message, column):
                 st.session_state.current_state["action_log"].append(f"User confirmed memory #{i+1}")
                 st.session_state.current_state["new_memories"].append(memory)
                 st.rerun()
-            if st.button(f"Ignore Memory {i+1}", key=f"ignore_memory_{i}"):
-                st.session_state.current_state["action_log"].append(f"User ignored memory #{i+1}")
+            if st.button(f"Delete Memory {i+1}", key=f"delete_memory_{i}"):
+                st.session_state.current_state["action_log"].append(f"User deleted memory #{i+1}")
+                st.session_state.current_state["suggested_memories"].remove(memory)
                 st.rerun()
         if st.button("Save Memories"):
             st.session_state.current_state["action_log"].append(f"User confirmed memories. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
