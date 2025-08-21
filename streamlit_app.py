@@ -40,7 +40,7 @@ def display_user_message(message, column):
     with column.chat_message(message["role"]):
         st.markdown(message["content"])
 
-def display_memory_message(message, column):
+def display_memory_message(message, message_index, column):
     """Display and ask for confirmation of new memories from the assistant."""
     # Use current suggested_memories from session state for the actual data
     memories = st.session_state.current_state["suggested_memories"]
@@ -48,6 +48,8 @@ def display_memory_message(message, column):
         st.write("I've deduced the following memories:")
         for i, memory in enumerate(memories):
             st.write(f"{i+1}. {memory}")
+            # Only show the last memory message's buttons
+            if message_index != len(st.session_state.messages) - 1: continue
             if st.button(f"🗑️ Delete", key=f"delete_memory_{i}"):
                 # Remove from suggested memories list using index
                 if i < len(st.session_state.current_state["suggested_memories"]):
@@ -58,16 +60,18 @@ def display_memory_message(message, column):
                     st.session_state.messages.pop()  # Remove the last message (the memory message)
                     add_new_message("assistant", st.session_state.current_state["suggested_memories"], "memory")
                     st.rerun()
-        if st.button("Save Memories"):
-            st.session_state.current_state["action_log"].append(f"User confirmed memories. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
-            # Store the memories the user kept
-            saved_memories = st.session_state.current_state["suggested_memories"].copy()
-            # Pass the user's modified memories to the graph
-            st.session_state.chat_graph.invoke(Command(resume={"action": "confirm_memories", "new_memories": saved_memories}), config=st.session_state.config)
-            # Keep the saved memories in suggested_memories for display
-            st.session_state.current_state["suggested_memories"] = saved_memories
-            add_new_message("assistant", "Memories saved.", "status")
-            st.rerun()
+        # Only show the save memories button if this is the last message
+        if message_index == len(st.session_state.messages) - 1:
+            if st.button("Save Memories"):
+                st.session_state.current_state["action_log"].append(f"User confirmed memories. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
+                # Store the memories the user kept
+                saved_memories = st.session_state.current_state["suggested_memories"].copy()
+                # Pass the user's modified memories to the graph
+                st.session_state.chat_graph.invoke(Command(resume={"action": "confirm_memories", "new_memories": saved_memories}), config=st.session_state.config)
+                # Keep the saved memories in suggested_memories for display
+                st.session_state.current_state["suggested_memories"] = saved_memories
+                add_new_message("assistant", "Memories saved.", "status")
+                st.rerun()
 
 
 def handle_draft_approval():
@@ -168,7 +172,7 @@ def setup_chat_interface(column):
         if message["role"] == "assistant" and message.get("message_type") == "draft":
             display_draft_message(message, i, column)
         elif message["role"] == "assistant" and message.get("message_type") == "memory":
-            display_memory_message(message, column)
+            display_memory_message(message, i, column)
         else:
             display_user_message(message, column)
 
