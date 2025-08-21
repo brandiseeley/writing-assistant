@@ -35,24 +35,85 @@ if "config" not in st.session_state:
 if "current_state" not in st.session_state:
     st.session_state.current_state = initialize_chat_state()
     st.session_state.current_state["action_log"] = [f'Graph was initialized. ConfigID: {str(st.session_state.config["configurable"]["thread_id"])[:6]}...']
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "feedback_mode" not in st.session_state:
+    st.session_state.feedback_mode = False
 
-# Simple controls - LEFT COLUMN
-left_column.header("Controls")
-new_message = left_column.text_input("Send Request:")
-if left_column.button("Send"):
-    if new_message.strip():
+# Chat interface - LEFT COLUMN
+left_column.header("Chat")
+
+# Display chat messages from history on app rerun
+for i, message in enumerate(st.session_state.messages):
+    with left_column.chat_message(message["role"]):
+        st.markdown(message["content"])
+        
+        # Add action buttons only for the most recent assistant message
+        if message["role"] == "assistant" and i == len(st.session_state.messages) - 1:
+            col1, col2, col3, col4, col5 = st.columns(5)
+            with col1:
+                if st.button("Approve", key=f"approve_{i}"):
+                    st.session_state.current_state["action_log"].append(f"User approved draft. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
+                    st.session_state.feedback_mode = False
+                    result = st.session_state.chat_graph.invoke(Command(resume={"action": "approve", "feedback": ""}), config=st.session_state.config)
+                    st.session_state.current_state = result
+                    st.rerun()
+            with col2:
+                if st.button("Reset", key=f"reset_{i}"):
+                    st.session_state.current_state["action_log"].append(f"User requested reset. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
+                    st.session_state.feedback_mode = False
+                    result = st.session_state.chat_graph.invoke(Command(resume={"action": "reset"}), config=st.session_state.config)
+                    st.session_state.current_state = result
+                    st.rerun()
+
+# Show feedback mode indicator
+if st.session_state.feedback_mode:
+    left_column.info("📝 Feedback mode - provide feedback on the draft above")
+
+# Set placeholder text based on mode
+placeholder_text = "Provide feedback on the draft..." if st.session_state.feedback_mode else "Send a message..."
+new_message = left_column.chat_input(placeholder_text)
+
+if new_message:
+    if st.session_state.feedback_mode:
+        # Handle feedback mode
+        st.session_state.messages.append({"role": "user", "content": f"Feedback: {new_message}"})
+        st.session_state.current_state["action_log"].append(f"User provided feedback: {new_message}")
+        
+        # Trigger revision with feedback
+        try:
+            result = st.session_state.chat_graph.invoke(
+                Command(resume={"action": "revise", "feedback": new_message}), 
+                config=st.session_state.config
+            )
+            st.session_state.current_state = result
+            
+            # Add assistant message if we have a new draft
+            if result.get("current_draft"):
+                st.session_state.messages.append({"role": "assistant", "content": result["current_draft"]})
+            
+            st.rerun()
+        except Exception as e:
+            st.error(f"Error processing feedback: {e}")
+    else:
+        # Handle normal mode
+        st.session_state.messages.append({"role": "user", "content": new_message})
         st.session_state.current_state["action_log"].append("User sent a request.")
         st.session_state.current_state["original_request"] = new_message
         try:
             result = st.session_state.chat_graph.invoke(st.session_state.current_state, config=st.session_state.config)
             st.session_state.current_state = result
+            
+            # Add assistant message if we have a new draft
+            if result.get("current_draft"):
+                st.session_state.messages.append({"role": "assistant", "content": result["current_draft"]})
+                # Enter feedback mode when draft is added
+                st.session_state.feedback_mode = True
+            
             st.rerun()
         except Exception as e:
             st.error(f"Error: {e}")
 
-if left_column.button("Reset"):
-    st.session_state.current_state = initialize_chat_state()
-    st.rerun()
 
 # Generic interrupt handling section
 # This handles any type of interrupt from the graph nodes
@@ -66,33 +127,35 @@ if st.session_state.current_state.get("__interrupt__"):
     else:
         interrupt_data = interrupt_obj
 
-    if interrupt_data["type"] == "draft":
-        with left_column.form("draft_feedback_form"):
-            feedback = st.text_area("Feedback (optional):", placeholder="Enter feedback if you want to revise...")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                if st.form_submit_button("Approve"):
-                    st.session_state.current_state["action_log"].append(f"User approved draft. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
-                    result = st.session_state.chat_graph.invoke(Command(resume={"action": "approve", "feedback": ""}), config=st.session_state.config)
-                    st.session_state.current_state = result
-                    st.rerun()
-            with col2:
-                if st.form_submit_button("Reject"):
-                    st.session_state.current_state["action_log"].append(f"User rejected draft. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
-                    result = st.session_state.chat_graph.invoke(Command(resume={"action": "reject", "feedback": "none"}), config=st.session_state.config)
-                    st.session_state.current_state = result
-                    st.rerun()
-            with col3:
-                if st.form_submit_button("Revise"):
-                    if feedback.strip():
-                        st.session_state.current_state["action_log"].append(f"User requested revision. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
-                        result = st.session_state.chat_graph.invoke(Command(resume={"action": "revise", "feedback": feedback}), config=st.session_state.config)
-                        st.session_state.current_state = result
-                        st.rerun()
-                    else:
-                        st.error("Please provide feedback for revision.")
+    # if interrupt_data["type"] == "draft":
+    #     with left_column.form("draft_feedback_form"):
+    #         feedback = st.text_area("Feedback (optional):", placeholder="Enter feedback if you want to revise...")
+    #         col1, col2, col3 = st.columns(3)
+    #         with col1:
+    #             if st.form_submit_button("Approve"):
+    #                 st.session_state.current_state["action_log"].append(f"User approved draft. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
+    #                 st.session_state.feedback_mode = False
+    #                 result = st.session_state.chat_graph.invoke(Command(resume={"action": "approve", "feedback": ""}), config=st.session_state.config)
+    #                 st.session_state.current_state = result
+    #                 st.rerun()
+    #         with col2:
+    #             if st.form_submit_button("Reject"):
+    #                 st.session_state.current_state["action_log"].append(f"User rejected draft. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
+    #                 st.session_state.feedback_mode = False
+    #                 result = st.session_state.chat_graph.invoke(Command(resume={"action": "reject", "feedback": "none"}), config=st.session_state.config)
+    #                 st.session_state.current_state = result
+    #                 st.rerun()
+    #         with col3:
+    #             if st.form_submit_button("Revise"):
+    #                 if feedback.strip():
+    #                     st.session_state.current_state["action_log"].append(f"User requested revision. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
+    #                     result = st.session_state.chat_graph.invoke(Command(resume={"action": "revise", "feedback": feedback}), config=st.session_state.config)
+    #                     st.session_state.current_state = result
+    #                     st.rerun()
+    #                 else:
+    #                     st.error("Please provide feedback for revision.")
     
-    elif interrupt_data["type"] == "memory_confirmation":
+    if interrupt_data["type"] == "memory_confirmation":
         for i, suggested_memory in enumerate(interrupt_data["suggested_memories"]):
             left_column.write(f"{i+1}. {suggested_memory}")
             if left_column.button(f"Save Memory {i+1}", key=f"save_memory_{i}"):
