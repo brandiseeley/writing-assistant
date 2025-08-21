@@ -17,10 +17,10 @@ def draft_node(state: ChatState) -> ChatState:
     """Node that creates the initial draft of the user input and generates AI response"""
     state["action_log"].append("Draft node was invoked.")
     
-    # Build user preferences from memories
+    # Build user preferences from applicable memories
     user_preferences = ""
-    if state.get("memories") and len(state["memories"]) > 0:
-        user_preferences = "User Preferences:\n" + "\n".join([f"- {memory}" for memory in state["memories"]]) + "\n"
+    if state.get("applicable_memories") and len(state["applicable_memories"]) > 0:
+        user_preferences = "User Preferences:\n" + "\n".join([f"- {memory}" for memory in state["applicable_memories"]]) + "\n"
     
     # Get response from OpenAI
     llm = ChatOpenAI(model="gpt-3.5-turbo", max_tokens=500)

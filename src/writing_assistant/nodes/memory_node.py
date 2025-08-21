@@ -8,7 +8,7 @@ from langgraph.graph import END
 class MemoryExtraction(BaseModel):
     """Structured output for memory extraction"""
     memories: List[str] = Field(
-        description="List of new memory statements extracted from the revision cycle. Each memory should be a clear, actionable statement that can guide future writing. If no new meaningful insights emerge, this should be an empty list."
+        description="List of new memory statements extracted from the revision cycle. Each memory should be a clear, actionable statement that includes contextual information about the interaction (formality level, communication style, focus areas, etc.). If no new meaningful insights emerge, this should be an empty list."
     )
 
 PROMPT = """
@@ -21,15 +21,26 @@ Context:
 - Revised Draft: {current_draft}
 - Past Revisions: {past_revisions}
 
-Based on this revision cycle, identify any new insights about the user's writing preferences, communication style, or specific requirements that should be remembered for future interactions. Focus on:
+Based on this revision cycle, identify any new insights about the user's writing preferences, communication style, or specific requirements that should be remembered for future interactions. 
 
-1. Writing style preferences (tone, formality, length, etc.)
+For each memory, include contextual information such as:
+- The formality level of the interaction (formal, semi-formal, informal, casual)
+- Communication style observed (direct, detailed, brief, conversational, technical)
+- What the user focuses on most (structure, tone, content, format, length)
+- Urgency level if applicable
+- Type of interaction (feedback, request, clarification, revision)
+
+Focus on extracting insights about:
+1. Writing style preferences (tone, formality, length, structure)
 2. Content preferences (what they want to emphasize or avoid)
 3. Communication patterns (how they provide feedback, what they value)
 4. Specific requirements or constraints they mentioned
 5. Any recurring themes or patterns in their requests
+6. Contextual cues about their communication style and preferences
 
-Extract 1-3 concise memory statements that capture the most important insights. Each memory should be a clear, actionable statement that can guide future writing.
+Extract 1-3 concise memory statements that capture the most important insights with contextual information. Each memory should be a clear, actionable statement that can guide future writing.
+
+Example format: "User prefers [style/tone] in [context] situations, focusing on [aspect] and communicating in [style] manner"
 
 If no new meaningful insights emerge from this interaction, return an empty list of memories.
 """
@@ -60,7 +71,7 @@ def memory_extraction_node(state: ChatState) -> ChatState:
     )
     
     # Get response from OpenAI with structured output
-    llm = ChatOpenAI(model="gpt-4o-mini", max_tokens=300)
+    llm = ChatOpenAI(model="gpt-4o-mini", max_tokens=400)
     llm_with_structure = llm.bind_tools([MemoryExtraction])
     memories = llm_with_structure.invoke(prompt).tool_calls[0]["args"]["memories"]
 

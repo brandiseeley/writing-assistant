@@ -1,9 +1,9 @@
 {
   "sample_user_123": {
     "memories": [
-      "User prefers lots of emojis in responses",
-      "User prefers bullet points over long paragraphs",
-      "User enjoys casual, friendly tone"
+      "User prefers bullet points over long paragraphs when sharing information in professional emails",
+      "User enjoys casual, friendly tone when writing direct messages with coworkers",
+      "User prefers to avoid overuse of em-dashes and opt for commas instead"
     ]
   }
 }

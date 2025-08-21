@@ -11,3 +11,4 @@ class ChatState(TypedDict):
     memories: List[str]
     suggested_memories: List[str]
     new_memories: List[str]
+    applicable_memories: List[str]

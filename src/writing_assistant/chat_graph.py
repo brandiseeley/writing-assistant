@@ -8,6 +8,7 @@ from .nodes.feedback_node import human_approval
 from .nodes.revisor_node import revisor_node
 from .nodes.memory_node import memory_extraction_node
 from .nodes.confirm_memories_node import confirm_memories_node
+from .nodes.memory_selector_node import memory_selector_node
 
 def create_chat_graph():
     """Create a simple LangGraph for chat interactions"""
@@ -16,6 +17,7 @@ def create_chat_graph():
     workflow = StateGraph(ChatState)
     
     # Add the nodes
+    workflow.add_node("memory_selector", memory_selector_node)
     workflow.add_node("draft", draft_node)
     workflow.add_node("human_feedback", human_approval)
     workflow.add_node("revisor", revisor_node)
@@ -23,9 +25,10 @@ def create_chat_graph():
     workflow.add_node("confirm_memories", confirm_memories_node)
 
     # Set the entry point
-    workflow.set_entry_point("draft")
+    workflow.set_entry_point("memory_selector")
     
     # Add edges
+    workflow.add_edge("memory_selector", "draft")
     workflow.add_edge("draft", "human_feedback")
     workflow.add_edge("revisor", "human_feedback")
     workflow.add_edge("memory_extraction", "confirm_memories")
@@ -48,5 +51,6 @@ def initialize_chat_state() -> ChatState:
         "action_log": [],
         "memories": [],
         "suggested_memories": [],
-        "new_memories": []
+        "new_memories": [],
+        "applicable_memories": []
     }
