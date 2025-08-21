@@ -15,6 +15,10 @@ from writing_assistant.chat_graph import create_chat_graph, initialize_chat_stat
 from writing_assistant.user_manager import UserManager
 
 
+def add_new_message(role, content, type=None):
+    """Handle new message."""
+    st.session_state.messages.append({"role": role, "content": content, "message_type": type})
+
 def display_draft_message(message, message_index, column):
     """Display a draft message with approve/reset action buttons."""
     with column.chat_message(message["role"]):
@@ -36,16 +40,38 @@ def display_user_message(message, column):
     with column.chat_message(message["role"]):
         st.markdown(message["content"])
 
+def display_memory_message(message, column):
+    """Display and ask for confirmation of new memories from the assistant."""
+    memories = message["content"]
+    with column.chat_message("assistant"):
+        st.write("I've deduced the following memories:")
+        for i, memory in enumerate(memories):
+            st.write(f"{i+1}. {memory}")
+            if st.button(f"Save Memory {i+1}", key=f"save_memory_{i}"):
+                st.session_state.current_state["action_log"].append(f"User confirmed memory #{i+1}")
+                st.session_state.current_state["new_memories"].append(memory)
+                st.rerun()
+            if st.button(f"Ignore Memory {i+1}", key=f"ignore_memory_{i}"):
+                st.session_state.current_state["action_log"].append(f"User ignored memory #{i+1}")
+                st.rerun()
+        if st.button("Save Memories"):
+            st.session_state.current_state["action_log"].append(f"User confirmed memories. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
+            result = st.session_state.chat_graph.invoke(Command(resume={"action": "confirm_memories", "new_memories": st.session_state.current_state["new_memories"]}), config=st.session_state.config)
+            st.session_state.current_state = result
+            add_new_message("assistant", "Memories saved.", "status")
+            st.rerun()
+
 
 def handle_draft_approval():
     """Handle draft approval action."""
-    st.session_state.messages.append({"role": "user", "content": "Draft approved"})
+    add_new_message("user", "Draft approved", "draft")
     st.session_state.current_state["action_log"].append(f"User approved draft. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
     st.session_state.feedback_mode = False
     result = st.session_state.chat_graph.invoke(Command(resume={"action": "approve", "feedback": ""}), config=st.session_state.config)
     st.session_state.current_state = result
     if len(st.session_state.current_state["past_revisions"]) > 0:
-        st.session_state.messages.append({"role": "assistant", "content": "Checking for new memories...", "message_type": "status"})
+        add_new_message("assistant", "Checking for new memories...", "status")
+        handle_memory_confirmation()
     st.rerun()
 
 
@@ -75,7 +101,7 @@ def initialize_session_state():
 
 def handle_feedback_mode(new_message):
     """Handle feedback mode interaction."""
-    st.session_state.messages.append({"role": "user", "content": f"Feedback: {new_message}"})
+    add_new_message("user", f"Feedback: {new_message}")
     st.session_state.current_state["action_log"].append(f"User provided feedback: {new_message}")
     
     try:
@@ -86,7 +112,7 @@ def handle_feedback_mode(new_message):
         st.session_state.current_state = result
         
         if result.get("current_draft"):
-            st.session_state.messages.append({"role": "assistant", "content": result["current_draft"], "message_type": "draft"})
+            add_new_message("assistant", result["current_draft"], "draft")
         
         st.rerun()
     except Exception as e:
@@ -95,7 +121,7 @@ def handle_feedback_mode(new_message):
 
 def handle_normal_mode(new_message):
     """Handle normal chat mode interaction."""
-    st.session_state.messages.append({"role": "user", "content": new_message})
+    add_new_message("user", new_message)
     st.session_state.current_state["action_log"].append("User sent a request.")
     st.session_state.current_state["original_request"] = new_message
     
@@ -104,7 +130,7 @@ def handle_normal_mode(new_message):
         st.session_state.current_state = result
         
         if result.get("current_draft"):
-            st.session_state.messages.append({"role": "assistant", "content": result["current_draft"], "message_type": "draft"})
+            add_new_message("assistant", result["current_draft"], "draft")
             st.session_state.feedback_mode = True
         
         st.rerun()
@@ -121,18 +147,7 @@ def handle_memory_confirmation():
     else:
         interrupt_data = interrupt_obj
 
-    if interrupt_data["type"] == "memory_confirmation":
-        for i, suggested_memory in enumerate(interrupt_data["suggested_memories"]):
-            st.write(f"{i+1}. {suggested_memory}")
-            if st.button(f"Save Memory {i+1}", key=f"save_memory_{i}"):
-                st.session_state.current_state["action_log"].append(f"User confirmed memory #{i+1}")
-                st.session_state.current_state["new_memories"].append(suggested_memory)
-                st.rerun()
-        if st.button("Confirm"):
-            st.session_state.current_state["action_log"].append(f"User confirmed memories. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
-            result = st.session_state.chat_graph.invoke(Command(resume={"action": "confirm_memories", "new_memories": st.session_state.current_state["new_memories"]}), config=st.session_state.config)
-            st.session_state.current_state = result
-            st.rerun()
+    add_new_message("assistant", interrupt_data['suggested_memories'], "memory")  
 
 
 def setup_chat_interface(column):
@@ -141,8 +156,10 @@ def setup_chat_interface(column):
 
     # Display chat messages from history on app rerun
     for i, message in enumerate(st.session_state.messages):
-        if message["role"] == "assistant":
+        if message["role"] == "assistant" and message.get("message_type") == "draft":
             display_draft_message(message, i, column)
+        elif message["role"] == "assistant" and message.get("message_type") == "memory":
+            display_memory_message(message, column)
         else:
             display_user_message(message, column)
 
@@ -224,10 +241,6 @@ initialize_session_state()
 
 # Setup chat interface
 setup_chat_interface(left_column)
-
-# Handle interrupts
-if st.session_state.current_state.get("__interrupt__"):
-    handle_memory_confirmation()
 
 # Display state - RIGHT COLUMN
 right_column.header("Current State")
