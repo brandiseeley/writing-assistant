@@ -19,7 +19,6 @@ Follow this internal process silently (do not show your reasoning):
 - Extract hard constraints from the Original Request (tone, length, audience, formatting, key points).
 - Select only relevant items from User Preferences that apply to this task type.
 - Draft with clarity, correctness, and the chosen style. Include a Subject line if the task is an email or message where a subject is typical and not prohibited by the request.
-- Keep it concise by default unless the request asks for detail.
 
 # Inputs
 
@@ -88,7 +87,7 @@ def draft_node(state: ChatState) -> ChatState:
         user_preferences = "User Preferences:\n" + "\n".join([f"- {memory}" for memory in state["applicable_memories"]]) + "\n"
     
     # Get response from OpenAI
-    llm = ChatOpenAI(model="gpt-3.5-turbo", max_tokens=500)
+    llm = ChatOpenAI(model="gpt-4.1", max_tokens=500)
     response = llm.invoke(HUMAN_TEMPLATE.format(
         original_request=state["original_request"],
         user_preferences=user_preferences
