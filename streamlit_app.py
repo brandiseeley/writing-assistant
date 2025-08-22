@@ -228,15 +228,17 @@ def setup_sidebar():
     # User selection
     st.sidebar.header("User Selection")
     available_users = user_manager.get_all_users()
-    user_options = ["New User"] + available_users
+    user_options = ["None Selected"] + available_users
     selected_user = st.sidebar.selectbox("Select User:", user_options)
+    if selected_user == "None Selected":
+        st.warning("No user selected. Memories will be generated for demonstration, but will not be saved.")
 
     # Update current state with selected user and trigger rerun if changed
     if selected_user != st.session_state.current_state["user"]:
         st.session_state.current_state["user"] = selected_user
         
         # Fetch and add user memories to state
-        if selected_user != "New User":
+        if selected_user != "None Selected":
             memories = user_manager.get_memories(selected_user)
             st.session_state.current_state["memories"] = memories
         else:
@@ -253,6 +255,7 @@ def setup_sidebar():
         st.sidebar.write("No memories stored yet.")
 
     # Display graph
+    st.sidebar.header("Graph Visualization")
     graph = create_chat_graph()
     img_bytes = graph.get_graph().draw_mermaid_png()  
     st.sidebar.image(img_bytes)

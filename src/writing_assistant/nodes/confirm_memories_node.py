@@ -22,7 +22,10 @@ def confirm_memories_node(state: ChatState) -> Command:
     if result['action'] == 'confirm_memories':
         # Use the new_memories from the command result (which contains the user's edits)
         updated_memories = result.get("new_memories", [])
-        # Save the updated memories
-        UserManager().add_memories(state["user"], updated_memories)
+        # Only save memories if a real user is selected (not "None Selected")
+        if state["user"] != "None Selected":
+            UserManager().add_memories(state["user"], updated_memories)
+        else:
+            state["action_log"].append("Skipped saving memories - no user selected.")
 
     return Command(goto=END)
