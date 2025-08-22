@@ -123,6 +123,7 @@ def handle_new_job():
 
 
 def initialize_session_state():
+    if "current_state" in st.session_state:
     """Initialize all session state variables."""
     if "chat_graph" not in st.session_state:
         st.session_state.chat_graph = create_chat_graph()
@@ -137,7 +138,7 @@ def initialize_session_state():
         st.session_state.feedback_mode = False
     if "job_completed" not in st.session_state:
         st.session_state.job_completed = False
-
+    
 
 def handle_feedback_mode(new_message):
     """Handle feedback mode interaction."""
@@ -167,6 +168,7 @@ def handle_normal_mode(new_message):
     
     try:
         result = st.session_state.chat_graph.invoke(st.session_state.current_state, config=st.session_state.config)
+
         st.session_state.current_state = result
         
         if result.get("current_draft"):
@@ -229,7 +231,11 @@ def setup_sidebar():
     st.sidebar.header("User Selection")
     available_users = user_manager.get_all_users()
     user_options = ["None Selected"] + available_users
-    selected_user = st.sidebar.selectbox("Select User:", user_options)
+
+    # If there's an active request, preselect current user, otherwise show default selection
+    index = user_options.index(st.session_state.current_state["user"]) if st.session_state.current_state["original_request"] else 0
+    selected_user = st.sidebar.selectbox("Select User:", user_options, index=index)
+
     if selected_user == "None Selected":
         st.warning("No user selected. Memories will be generated for demonstration, but will not be saved.")
 
@@ -264,7 +270,6 @@ def setup_sidebar():
 def setup_page_layout():
     """Setup the main page layout."""
     st.set_page_config(page_title="Writing Assistant", page_icon="📝", layout="wide")
-    print("ST.SESSION_STATE.CURRENT_STATE:", st.session_state)
 
     header = st.container()
     header.header("📝 Writing Assistant")
