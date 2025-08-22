@@ -148,6 +148,7 @@ def handle_draft_reset():
     st.session_state.feedback_mode = False
     result = st.session_state.chat_graph.invoke(Command(resume={"action": "reset"}), config=st.session_state.config)
     st.session_state.current_state = result
+    st.session_state.messages = []
     st.rerun()
 
 
