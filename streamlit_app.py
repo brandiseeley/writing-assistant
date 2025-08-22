@@ -252,11 +252,6 @@ def setup_sidebar():
     else:
         st.sidebar.write("No memories stored yet.")
 
-    # Display action log
-    st.sidebar.header("Action Log")
-    for action in st.session_state.current_state["action_log"]:
-        st.sidebar.write(action)
-
     # Display graph
     graph = create_chat_graph()
     img_bytes = graph.get_graph().draw_mermaid_png()  
