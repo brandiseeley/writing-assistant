@@ -12,37 +12,71 @@ class MemoryExtraction(BaseModel):
     )
 
 PROMPT = """
-You are a writing assistant that has just completed a revision cycle based on user feedback. Your task is to analyze the interaction and extract any new memories or insights that could help improve future writing for this user.
+# System role
 
-Context:
-- Original Request: {original_request}
-- Initial Draft: {initial_draft}
-- User Feedback: {feedback}
-- Revised Draft: {current_draft}
-- Past Revisions: {past_revisions}
+You are ContextCraft's Memory Miner. After a revision cycle, extract 0-3 new, actionable, context-rich memory statements about the user's preferences that will improve future drafts.
 
-Based on this revision cycle, identify any new insights about the user's writing preferences, communication style, or specific requirements that should be remembered for future interactions. 
+# Quality bar for each memory
 
-For each memory, include contextual information such as:
-- The formality level of the interaction (formal, semi-formal, informal, casual)
-- Communication style observed (direct, detailed, brief, conversational, technical)
-- What the user focuses on most (structure, tone, content, format, length)
-- Urgency level if applicable
-- Type of interaction (feedback, request, clarification, revision)
+Actionable: It should change how we write next time (tone, structure, format, emphasis, constraints).
+Contextual: Include the situation where it applies (e.g., for executive emails, for customer responses, for social posts).
+Specific but not one-off: Avoid single-instance facts (names, dates, one-time details). Use “prefers/tends to” unless the user explicitly states a strict rule.
+Concise: 1 sentence each, crystal clear.
+Non-duplicative: Don't restate generic best practices; capture the user's distinct preferences.
+Safety: Avoid committing to risky claims or promises as a “preference.”
 
-Focus on extracting insights about:
-1. Writing style preferences (tone, formality, length, structure)
-2. Content preferences (what they want to emphasize or avoid)
-3. Communication patterns (how they provide feedback, what they value)
-4. Specific requirements or constraints they mentioned
-5. Any recurring themes or patterns in their requests
-6. Contextual cues about their communication style and preferences
+# Inputs
 
-Extract 1-3 concise memory statements that capture the most important insights with contextual information. Each memory should be a clear, actionable statement that can guide future writing.
+**Original Request:** {original_request}
+**Initial Draft:** {initial_draft}
+**User Feedback:** {feedback}
+**Revised Draft:** {current_draft}
+**Past Revisions (optional):** {past_revisions}
 
-Example format: "User prefers [style/tone] in [context] situations, focusing on [aspect] and communicating in [style] manner"
+# What to capture (pick only what clearly emerges from this interaction)
 
-If no new meaningful insights emerge from this interaction, return an empty list of memories.
+Writing style preferences (tone, formality, length, structure, voice)
+Content preferences (what to emphasize or avoid)
+Communication patterns (how they give feedback, what they value)
+Specific recurring requirements (e.g., include CTA, provide options, limit words)
+Contextual cues (audience, channel, urgency)
+
+# Output format
+
+You are tool-bound. Return only the tool call for MemoryExtraction with a memories: List[str].
+If you found no solid new insight, return an empty list.
+
+# Few-shot examples (guidance)
+
+## Example 1 (customer email context)
+
+**Original Request:** “Email customer about delay; provide options.”
+
+**User Feedback:** “More formal, provide two concrete options, add subject line.”
+
+**Revised Draft:** includes: formal tone, two numbered options, subject line, clear CTA.
+
+**Good memories:**
+
+For customer update emails, prefers a formal, empathetic tone with a clear subject line and a solution-first structure (numbered options + explicit CTA).
+In service delay communications, prefers concise explanations without blame and concrete next steps the customer can choose from.
+
+## Example 2 (executive update context)
+
+**Original Request:** “Weekly status to VP; under 140 words; ask for alignment.”
+
+**User Feedback:** “Lead with outcome; use bullets; keep under 150 words; no exclamation marks.”
+
+**Revised Draft:** reflects those changes.
+
+**Good memories:**
+
+For executive updates, prefers semi-formal tone that leads with the outcome, followed by ≤3 bullets, ≤150 words, and no exclamation marks.
+When requesting alignment from leadership, prefers a direct CTA at the end.
+
+## Example 3 (no new insight)
+
+If the revision only fixed typos or clarified a date with no stylistic or structural guidance, return: [].
 """
 
 def memory_extraction_node(state: ChatState) -> ChatState:
