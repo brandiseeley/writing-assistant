@@ -321,10 +321,10 @@ def setup_sidebar():
 
 def setup_page_layout():
     """Setup the main page layout."""
-    st.set_page_config(page_title="Writing Assistant", page_icon="📝", layout="wide")
+    st.set_page_config(page_title="ContextCraft", page_icon="💡", layout="wide")
 
     header = st.container()
-    header.header("📝 Writing Assistant")
+    header.header("💡 ContextCraft")
     # Display state in collapsible box above chat
     with header.expander("Current State", expanded=False):
         st.json(st.session_state.current_state)
