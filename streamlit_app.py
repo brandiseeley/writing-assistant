@@ -123,7 +123,6 @@ def handle_new_job():
 
 
 def initialize_session_state():
-    if "current_state" in st.session_state:
     """Initialize all session state variables."""
     if "chat_graph" not in st.session_state:
         st.session_state.chat_graph = create_chat_graph()
