@@ -26,7 +26,7 @@ def display_draft_message(message, message_index, column):
         
         # Add action buttons only for draft messages (not status messages)
         if message.get("message_type") == "draft" and message_index == len(st.session_state.messages) - 1:
-            col1, col2, col3, col4, col5 = st.columns(5)
+            col1, col2, _, _, _, _, _, _ = st.columns(8)
             with col1:
                 if st.button("Approve", key=f"approve_{message_index}"):
                     handle_draft_approval()
@@ -42,26 +42,75 @@ def display_user_message(message, column):
 
 def display_memory_message(message, message_index, column):
     """Display and ask for confirmation of new memories from the assistant."""
+    # Initialize editing state if not exists
+    if "editing_memory" not in st.session_state:
+        st.session_state.editing_memory = None
+    
     # Use current suggested_memories from session state for the actual data
     memories = st.session_state.current_state["suggested_memories"]
     with column.chat_message("assistant"):
         st.write("I've deduced the following memories:")
         for i, memory in enumerate(memories):
-            st.write(f"{i+1}. {memory}")
-            # Only show the last memory message's buttons
-            if message_index != len(st.session_state.messages) - 1: continue
-            if st.button(f"🗑️ Delete", key=f"delete_memory_{i}"):
-                # Remove from suggested memories list using index
-                if i < len(st.session_state.current_state["suggested_memories"]):
-                    st.session_state.current_state["suggested_memories"].pop(i)
-                    st.session_state.current_state["action_log"].append(f"User deleted memory #{i+1}")
+            # Only show buttons for the last memory message
+            if message_index == len(st.session_state.messages) - 1:
+                # Check if this memory is being edited
+                if st.session_state.editing_memory == i:
+                    # Edit mode - show text input and save/cancel buttons
+                    edited_memory = st.text_area(
+                        f"Edit memory {i+1}:", 
+                        value=memory, 
+                        key=f"edit_memory_input_{i}",
+                        height=100
+                    )
                     
-                    # Remove the old memory message and recreate it with updated state
-                    st.session_state.messages.pop()  # Remove the last message (the memory message)
-                    add_new_message("assistant", st.session_state.current_state["suggested_memories"], "memory")
-                    st.rerun()
-        # Only show the save memories button if this is the last message
-        if message_index == len(st.session_state.messages) - 1:
+                    col1, col2, _, _, _, _, _, _ = st.columns(8)
+                    with col1:
+                        if st.button("Save", key=f"save_memory_{i}"):
+                            # Update the memory in session state
+                            st.session_state.current_state["suggested_memories"][i] = edited_memory
+                            st.session_state.current_state["action_log"].append(f"User edited memory #{i+1}")
+                            st.session_state.editing_memory = None
+                            
+                            # Remove the old memory message and recreate it with updated state
+                            st.session_state.messages.pop()
+                            add_new_message("assistant", st.session_state.current_state["suggested_memories"], "memory")
+                            st.rerun()
+                    
+                    with col2:
+                        if st.button("Cancel", key=f"cancel_memory_{i}"):
+                            st.session_state.editing_memory = None
+                            st.rerun()
+                else:
+                    # Display mode - show memory text and action buttons
+                    st.write(f"{i+1}. {memory}")
+                    
+                    col1, col2, _, _, _, _, _, _ = st.columns(8)
+                    with col1:
+                        if st.button(f"Edit", key=f"edit_memory_{i}"):
+                            st.session_state.editing_memory = i
+                            st.rerun()
+                    
+                    with col2:
+                        if st.button(f"Delete", key=f"delete_memory_{i}"):
+                            # Remove from suggested memories list using index
+                            if i < len(st.session_state.current_state["suggested_memories"]):
+                                st.session_state.current_state["suggested_memories"].pop(i)
+                                st.session_state.current_state["action_log"].append(f"User deleted memory #{i+1}")
+                                
+                                # Reset editing state if we were editing a memory after the deleted one
+                                if st.session_state.editing_memory is not None and st.session_state.editing_memory >= i:
+                                    st.session_state.editing_memory = None
+                                
+                                # Remove the old memory message and recreate it with updated state
+                                st.session_state.messages.pop()
+                                add_new_message("assistant", st.session_state.current_state["suggested_memories"], "memory")
+                                st.rerun()
+            else:
+                # For older messages, just display the memory without buttons
+                st.write(f"{i+1}. {memory}")
+        
+        # Only show the save memories button if this is the last message and no memory is being edited
+        if message_index == len(st.session_state.messages) - 1 and st.session_state.editing_memory is None:
             if st.button("Save Memories"):
                 st.session_state.current_state["action_log"].append(f"User confirmed memories. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
                 # Store the memories the user kept
@@ -111,6 +160,7 @@ def handle_new_job():
     st.session_state.messages = []
     st.session_state.feedback_mode = False
     st.session_state.job_completed = False
+    st.session_state.editing_memory = None
     st.session_state.config = {"configurable": {"thread_id": uuid.uuid4()}}
     
     # Initialize new state but keep user and memories
@@ -137,6 +187,8 @@ def initialize_session_state():
         st.session_state.feedback_mode = False
     if "job_completed" not in st.session_state:
         st.session_state.job_completed = False
+    if "editing_memory" not in st.session_state:
+        st.session_state.editing_memory = None
     
 
 def handle_feedback_mode(new_message):
