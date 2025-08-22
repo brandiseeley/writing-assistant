@@ -71,6 +71,8 @@ def display_memory_message(message, message_index, column):
                 # Keep the saved memories in suggested_memories for display
                 st.session_state.current_state["suggested_memories"] = saved_memories
                 add_new_message("assistant", "Memories saved.", "status")
+                # Job completed after saving memories
+                st.session_state.job_completed = True
                 st.rerun()
 
 
@@ -85,6 +87,9 @@ def handle_draft_approval():
     if len(st.session_state.current_state["past_revisions"]) > 0 and not any(msg.get("message_type") == "memory" for msg in st.session_state.messages):
         add_new_message("assistant", "Checking for new memories...", "status")
         handle_memory_confirmation()
+    else:
+        # Job completed without memories to extract
+        st.session_state.job_completed = True
     st.rerun()
 
 
@@ -94,6 +99,26 @@ def handle_draft_reset():
     st.session_state.feedback_mode = False
     result = st.session_state.chat_graph.invoke(Command(resume={"action": "reset"}), config=st.session_state.config)
     st.session_state.current_state = result
+    st.rerun()
+
+
+def handle_new_job():
+    """Handle new job action - keep user but reset messages and drafts."""
+    current_user = st.session_state.current_state["user"]
+    current_memories = st.session_state.current_state["memories"].copy()
+    
+    # Reset session state for new job
+    st.session_state.messages = []
+    st.session_state.feedback_mode = False
+    st.session_state.job_completed = False
+    st.session_state.config = {"configurable": {"thread_id": uuid.uuid4()}}
+    
+    # Initialize new state but keep user and memories
+    st.session_state.current_state = initialize_chat_state()
+    st.session_state.current_state["user"] = current_user
+    st.session_state.current_state["memories"] = current_memories
+    st.session_state.current_state["action_log"] = [f'New job started. ConfigID: {str(st.session_state.config["configurable"]["thread_id"])[:6]}...']
+    
     st.rerun()
 
 
@@ -110,6 +135,8 @@ def initialize_session_state():
         st.session_state.messages = []
     if "feedback_mode" not in st.session_state:
         st.session_state.feedback_mode = False
+    if "job_completed" not in st.session_state:
+        st.session_state.job_completed = False
 
 
 def handle_feedback_mode(new_message):
@@ -175,6 +202,11 @@ def setup_chat_interface(column):
             display_memory_message(message, i, column)
         else:
             display_user_message(message, column)
+
+    # Show new job button if job is completed
+    if st.session_state.job_completed:
+        if st.button("Start a New Task", key="new_job_button"):
+            handle_new_job()
 
     # Show feedback mode indicator
     if st.session_state.feedback_mode:
