@@ -36,7 +36,7 @@ def display_draft_message(message, message_index, column):
         
         # Add action buttons only for draft messages (not status messages)
         if message.get("message_type") == "draft" and message_index == len(st.session_state.messages) - 1:
-            col1, col2, _, _, _, _, _, _ = st.columns(8)
+            col1, col2, _, _, _, _ = st.columns(6)
             with col1:
                 if st.button("Approve", key=f"approve_{message_index}"):
                     handle_draft_approval()
@@ -73,7 +73,7 @@ def display_memory_message(message, message_index, column):
                         height=100
                     )
                     
-                    col1, col2, _, _, _, _, _, _ = st.columns(8)
+                    col1, col2, _, _, _, _ = st.columns(6)
                     with col1:
                         if st.button("Save", key=f"save_memory_{i}"):
                             # Update the memory in session state
@@ -94,7 +94,7 @@ def display_memory_message(message, message_index, column):
                     # Display mode - show memory text and action buttons
                     st.write(f"{i+1}. {memory}")
                     
-                    col1, col2, _, _, _, _, _, _ = st.columns(8)
+                    col1, col2, _, _, _, _ = st.columns(6)
                     with col1:
                         if st.button(f"Edit", key=f"edit_memory_{i}"):
                             st.session_state.editing_memory = i
