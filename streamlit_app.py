@@ -153,7 +153,8 @@ def handle_draft_reset():
 
 def handle_new_job():
     """Handle new job action - keep user but reset messages and drafts."""
-    current_user = st.session_state.current_state["user"]
+    # Use persisted user if available, otherwise use current user
+    current_user = st.session_state.persisted_user if st.session_state.persisted_user != "None Selected" else st.session_state.current_state["user"]
     current_memories = st.session_state.current_state["memories"].copy()
     
     # Reset session state for new job
@@ -189,6 +190,8 @@ def initialize_session_state():
         st.session_state.job_completed = False
     if "editing_memory" not in st.session_state:
         st.session_state.editing_memory = None
+    if "persisted_user" not in st.session_state:
+        st.session_state.persisted_user = "None Selected"
     
 
 def handle_feedback_mode(new_message):
@@ -286,9 +289,15 @@ def setup_sidebar():
     available_users = user_manager.get_all_users()
     user_options = ["None Selected"] + available_users
 
-    # If there's an active request, preselect current user, otherwise show default selection
-    index = user_options.index(st.session_state.current_state["user"]) if st.session_state.current_state["original_request"] else 0
-    selected_user = st.sidebar.selectbox("Select User:", user_options, index=index)
+    # Use persisted user if available, otherwise use current state user
+    if st.session_state.persisted_user in user_options:
+        default_index = user_options.index(st.session_state.persisted_user)
+    elif st.session_state.current_state["original_request"]:
+        default_index = user_options.index(st.session_state.current_state["user"])
+    else:
+        default_index = 0
+    
+    selected_user = st.sidebar.selectbox("Select User:", user_options, index=default_index)
 
     if selected_user == "None Selected":
         st.warning("No user selected. Memories will be generated for demonstration, but will not be saved.")
@@ -296,6 +305,7 @@ def setup_sidebar():
     # Update current state with selected user and trigger rerun if changed
     if selected_user != st.session_state.current_state["user"]:
         st.session_state.current_state["user"] = selected_user
+        st.session_state.persisted_user = selected_user  # Persist the selection
         
         # Fetch and add user memories to state
         if selected_user != "None Selected":
