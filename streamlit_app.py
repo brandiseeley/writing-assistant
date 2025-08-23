@@ -127,14 +127,13 @@ def display_memory_message(message, message_index, column):
 
 def handle_draft_approval():
     """Handle draft approval action."""
-    add_new_message("user", "Draft approved", "draft")
     st.session_state.current_state["action_log"].append(f"User approved draft. Resuming graph with ID: {str(st.session_state.config['configurable']['thread_id'])[:6]}...")
     st.session_state.feedback_mode = False
     result = st.session_state.chat_graph.invoke(Command(resume={"action": "approve", "feedback": ""}), config=st.session_state.config)
     st.session_state.current_state = result
     # Only check for memories if there are past revisions AND no memory message already exists
     if len(st.session_state.current_state["past_revisions"]) > 0 and not any(msg.get("message_type") == "memory" for msg in st.session_state.messages):
-        add_new_message("assistant", "Checking for new memories...", "status")
+        add_new_message("assistant", "Approved.Checking for new memories...", "status")
         handle_memory_confirmation()
     else:
         # Job completed without memories to extract
@@ -195,6 +194,7 @@ def initialize_session_state():
 def handle_feedback_mode(new_message):
     """Handle feedback mode interaction."""
     add_new_message("user", f"Feedback: {new_message}")
+    display_user_message({'role': 'user', 'content': f"Feedback: {new_message}"}, st)
     st.session_state.current_state["action_log"].append(f"User provided feedback: {new_message}")
     
     try:
@@ -215,6 +215,7 @@ def handle_feedback_mode(new_message):
 def handle_normal_mode(new_message):
     """Handle normal chat mode interaction."""
     add_new_message("user", new_message)
+    display_user_message({'role': 'user', 'content': new_message}, st)
     st.session_state.current_state["action_log"].append("User sent a request.")
     st.session_state.current_state["original_request"] = new_message
     
@@ -234,6 +235,7 @@ def handle_normal_mode(new_message):
 
 def handle_memory_confirmation():
     """Handle memory confirmation interrupt."""
+    display_user_message({'role': 'assistant', 'content': "Approved. Checking for new memories..."}, st)
     interrupt_obj = st.session_state.current_state["__interrupt__"][0]
     
     if hasattr(interrupt_obj, 'value'):
