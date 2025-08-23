@@ -3,4 +3,11 @@ primaryColor = "#cb785c"
 backgroundColor = "#fdfdf7"
 secondaryBackgroundColor = "#f0f0eb"
 textColor = "#3c3a2a"
-font = "sans serif"
+font="spacegrotesk"
+
+[server]
+enableStaticServing = true
+
+[[theme.fontFaces]]
+family="spacegrotesk"
+url="app/static/SpaceGrotesk-VariableFont_wght.ttf"
