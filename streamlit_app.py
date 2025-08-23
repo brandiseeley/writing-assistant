@@ -325,10 +325,10 @@ def setup_sidebar():
         st.sidebar.write("No memories stored yet.")
 
     # Display graph
-    st.sidebar.header("Graph Visualization")
-    graph = create_chat_graph()
-    img_bytes = graph.get_graph().draw_mermaid_png()  
-    st.sidebar.image(img_bytes)
+    with st.sidebar.expander("Graph Visualization"):
+        graph = create_chat_graph()
+        img_bytes = graph.get_graph().draw_mermaid_png()  
+        st.image(img_bytes)
 
 
 def setup_page_layout():
