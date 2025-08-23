@@ -1,38 +1,21 @@
 from ..chat_state import ChatState
 from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
-PROMPT = """
-# System role
-
+SYSTEM_TEMPLATE = """
 You are ContextCraft, revising a draft based on user feedback. Your goal is to implement the feedback precisely while preserving accuracy, clarity, and the user's preferred style.
 
 Revise using this policy:
 
 - Address each explicit point in the feedback. If feedback conflicts with the Original Request, prioritize the request unless the user overrides it clearly.
-- Apply relevant User Preferences and patterns from Past Revisions when they help.
+- Apply relevant User Preferences and patterns from the conversation history when they help.
 - Do not add new claims or details that weren't in the request/draft unless the user explicitly asked for them or they are trivial formatting additions (e.g., subject line).
 - Keep the good parts; focus edits where needed (tone, structure, concision, emphasis).
 - If the user asked for length/tone/format changes, satisfy them.
 - Output only the revised draft (no explanations or change logs).
 
-# Inputs
-
-Original Request:
-{original_request}
-
 User Preferences (may be empty):
 {user_preferences}
-
-Past Revisions (may be empty; earlier rounds of [Feedback + Draft]):
-{past_revisions}
-
-Current Draft (to be revised now):
-{current_draft}
-
-User Feedback (what to change now):
-{feedback}
-
-# Output requirement
 
 Output only the revised draft. No commentary, no labels.
 
@@ -41,7 +24,7 @@ Output only the revised draft. No commentary, no labels.
 Example A
 **Original Request:**
 
-“Write a brief internal note explaining the outage and next steps.”
+"Write a brief internal note explaining the outage and next steps."
 
 **User Preferences:**
 
@@ -62,7 +45,7 @@ We had a 27-minute outage caused by a failed primary-to-replica failover. We res
 Example B
 **Original Request:**
 
-“Email the customer about the delayed shipment; keep a respectful tone and provide options.”
+"Email the customer about the delayed shipment; keep a respectful tone and provide options."
 
 **User Preferences:**
 
@@ -96,25 +79,38 @@ def revisor_node(state: ChatState) -> ChatState:
     if state.get("memories") and len(state["memories"]) > 0:
         user_preferences = "User Preferences:\n" + "\n".join([f"- {memory}" for memory in state["memories"]]) + "\n"
 
-    # Format past revisions for display
-    past_revisions_text = ""
-    if state["past_revisions"]:
-        for i, revision in enumerate(state["past_revisions"], 1):
-            past_revisions_text += f"Round {i}:\n"
-            past_revisions_text += f"Feedback: {revision['feedback']}\n"
-            past_revisions_text += f"Draft: {revision['draft']}\n\n"
-
-    prompt = PROMPT.format(
-        original_request=state["original_request"],
-        user_preferences=user_preferences,
-        past_revisions=past_revisions_text,
-        current_draft=state["current_draft"],
-        feedback=state["feedback"]
-    )
+    # Build conversation history from past revisions
+    messages = []
     
-    # Get response from OpenAI
+    # Add system message
+    system_message = SystemMessage(content=SYSTEM_TEMPLATE.format(user_preferences=user_preferences))
+    messages.append(system_message)
+    
+    # Add original request as first user message
+    original_request_message = HumanMessage(content=state["original_request"])
+    messages.append(original_request_message)
+    
+    # Add conversation history from past revisions
+    if state["past_revisions"]:
+        for revision in state["past_revisions"]:
+            # Add the draft as assistant message
+            assistant_message = AIMessage(content=revision["draft"])
+            messages.append(assistant_message)
+            # Add the feedback as user message
+            feedback_message = HumanMessage(content=revision["feedback"])
+            messages.append(feedback_message)
+    
+    # Add current draft as assistant message
+    current_draft_message = AIMessage(content=state["current_draft"])
+    messages.append(current_draft_message)
+    
+    # Add current feedback as user message
+    feedback_message = HumanMessage(content=state["feedback"])
+    messages.append(feedback_message)
+
+    # Get response from OpenAI using conversation history
     llm = ChatOpenAI(model="gpt-3.5-turbo", max_tokens=500)
-    response = llm.invoke(prompt)
+    response = llm.invoke(messages)
     
     # Extract the response
     ai_response = response.content

@@ -3,7 +3,19 @@
     "memories": [
       "User prefers bullet points over long paragraphs when sharing information in professional emails",
       "User enjoys casual, friendly tone when writing direct messages with coworkers",
-      "User prefers to avoid overuse of em-dashes and opt for commas instead"
+      "User prefers to avoid overuse of em-dashes and opt for commas instead",
+      "For casual thank you notes, the user prefers to add a ton of emojis!"
+    ]
+  },
+  "Fitness App Team": {
+    "memories": [
+      "Social media posts should be 120 characters or less to comply with Twitter's character limit",
+      "Social media posts should avoid overuse of emojis. One or two maximum.",
+      "Feature announcements should use 'we' language instead of 'I' language."
+    ]
+  },
+  "Sample User": {
+    "memories": [
     ]
   }
 }
