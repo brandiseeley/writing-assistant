@@ -1,12 +1,4 @@
 {
-  "sample_user_123": {
-    "memories": [
-      "User prefers bullet points over long paragraphs when sharing information in professional emails",
-      "User enjoys casual, friendly tone when writing direct messages with coworkers",
-      "User prefers to avoid overuse of em-dashes and opt for commas instead",
-      "For casual thank you notes, the user prefers to add a ton of emojis!"
-    ]
-  },
   "Fitness App Team": {
     "memories": [
       "Social media posts should be 120 characters or less to comply with Twitter's character limit",
@@ -14,8 +6,23 @@
       "Feature announcements should use 'we' language instead of 'I' language."
     ]
   },
-  "Sample User": {
+  "Ayu the Dog Goomer": {
     "memories": [
+      "For social media posts, prefers to include the business name, Happy Paws, prominently to strengthen brand identity.",
+      "In casual announcements, prefers to use a fun, informal tone with lots of emojis for a lively appeal."
+    ]
+  },
+  "Marketing Manager Daniela": {
+    "memories": [
+      "Social media posts should be under 280 characters and include 2-3 relevant hashtags for better discoverability",
+      "Professional emails to clients should use formal greetings and closings, but maintain a warm, approachable tone",
+      "When writing blog post outlines, prefer numbered lists over bullet points for step-by-step processes",
+      "Always mention the company name 'TechFlow Solutions' in the first paragraph of external communications",
+      "Use emojis sparingly in professional communications - maximum 1 per email, 2-3 for social media",
+      "Technical documentation should include code examples and use 'you' language instead of 'the user'",
+      "Meeting summaries should be structured with: Attendees, Key Decisions, Action Items, and Next Steps",
+      "Customer support responses should acknowledge the issue first, then provide a clear solution with next steps",
+      "Team updates should be concise and highlight wins, challenges, and immediate next actions"
     ]
   }
 }

@@ -24,6 +24,16 @@ def display_draft_message(message, message_index, column):
     with column.chat_message(message["role"]):
         st.markdown(message["content"])
         
+        # Show memories used in this draft
+        if st.session_state.current_state.get("applicable_memories"):
+            with st.expander("Memories Used in This Draft", expanded=False):
+                memories = st.session_state.current_state["applicable_memories"]
+                if memories:
+                    for i, memory in enumerate(memories, 1):
+                        st.write(f"{i}. {memory}")
+                else:
+                    st.write("No specific memories were used for this draft.")
+        
         # Add action buttons only for draft messages (not status messages)
         if message.get("message_type") == "draft" and message_index == len(st.session_state.messages) - 1:
             col1, col2, _, _, _, _, _, _ = st.columns(8)
@@ -336,7 +346,7 @@ def setup_page_layout():
     st.set_page_config(page_title="ContextCraft", page_icon="💡", layout="wide")
 
     header = st.container()
-    header.header("💡 ContextCraft")
+    header.title("💡 ContextCraft")
     # Display state in collapsible box above chat
     with header.expander("Current State", expanded=False):
         st.json(st.session_state.current_state)
